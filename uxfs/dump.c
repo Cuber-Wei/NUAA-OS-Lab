@@ -8,7 +8,10 @@
 
 void dump_regular(inode_t *inode)
 {
-    /* TODO */
+    char buf[101] = {0};
+    int len = inode_read(inode, 0, buf, 100);
+    buf[len > 0 ? len : 0] = '\0';
+    typer_dump("reg %s\n", buf);
 }
 
 extern void dump_dir_entry(dir_entry_t *dir_entry);
@@ -22,7 +25,9 @@ void dump_dir(inode_t *dir)
     dir_cursor_t dir_cursor;
     dir_cursor_init(&dir_cursor, dir);
 
-    /* TODO */
+    while ((dir_entry = dir_cursor_next(&dir_cursor)) != NULL) {
+        dump_dir_entry(dir_entry);
+    }
 
     dir_cursor_destroy(&dir_cursor);
     typer_pop();
@@ -46,7 +51,15 @@ void dump_dir_entry(dir_entry_t *dir_entry)
     typer_dump("name %s\n", name);
     typer_dump("ino %d\n", ino);
 
-    /* TODO */
+    inode_t *inode = fs_seek_inode(ino);
+    if (inode_is_dir(inode)) {
+        // 只对非"."和".."递归
+        if (!is_dot(name)) {
+            dump_dir(inode);
+        }
+    } else if (inode_is_regular(inode)) {
+        dump_regular(inode);
+    }
 
     typer_pop();
 }
