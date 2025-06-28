@@ -119,7 +119,12 @@ clean: # make clean
 	rm -f T1 T2 # 清理多余文件
 ```
 
-## 常用API
+## 大致考试范围
+
+### 进程、进程间通讯
+
+- `fork`  和 `pipe` 的使用
+- 重定向操作
 
 ```c
 /*
@@ -142,38 +147,7 @@ int dup2(int oldfd, int newfd);
  * 父子进程从 fork 之后的下一条语句开始分别执行，拥有独立的地址空间。
 **/
 pid_t fork(void);
-
-/*
- * 调用系统命令程序
- * file：要执行的程序名（会在 PATH 环境变量指定的目录中查找）。
- * arg0：新程序的名称（通常与 file 相同）。后面可以跟多个参数，最后必须以 NULL 结尾。
-**/
-int execlp(const char *file, const char *arg0, ..., NULL);
-
-/*
- * thread：指向 pthread_t 类型的变量，用于存放新线程的ID。
- * attr：线程属性，通常用 NULL 表示默认属性。
- * start_routine：线程将要执行的函数指针，函数原型为 void *func(void *)。
- * arg：传递给线程函数的参数，可以为 NULL。
- * 返回值为0表示创建成功，非0表示出错。
-**/
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                   void *(*start_routine)(void *), void *arg);
-
-/*
- * thread：要等待的线程ID。
- * retval：用于获取线程的返回值，若不需要可传 NULL。
- * 调用 pthread_join 后，当前线程会阻塞，直到被等待的线程终止。常用于主线程等待所有子线程完成后再退出，保证多线程程序的正确性和资源回收。
-**/
-int pthread_join(pthread_t thread, void **retval);
 ```
-
-## 大致考试范围
-
-### 进程、进程间通讯
-
-- `fork`  和 `pipe` 的使用
-- 重定向操作
 
 ### 进程共享资源控制
 
@@ -192,6 +166,15 @@ pthread_mutex_destroy(&mutex);
 int pthread_cond_signal(pthread_cond_t *cond);
 // 用于让线程等待某个条件变量的变化
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+
+// 初始化信号量为
+sem_init(&mutex, 0, init_num);
+// 请求信号量（信号量--）
+sem_wait(&full);
+// 等待信号量（信号量++）
+sem_post(&mutex);
+// 销毁信号量
+sem_destroy(&mutex);
 ```
 
 - 进程间通讯、线程间通讯
@@ -220,8 +203,6 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 // 索引节点
 // 从 inode 中偏移为 position 的位置读取数据，保存到起始位置为 memory、大小为 size 的内存区域
 int inode_read(inode_t *this, off_t position, void *memory, int size);
-// 把起始位置为 memory、大小为 size 的内存区域，写入到 inode 中偏移为 position 的位置
-int inode_write(inode_t *this, off_t position, void *memory, int size);
 
 // 示例：向mem中读入"bcd"
 inode content: abcdef
@@ -238,8 +219,8 @@ typedef struct dir_entry {
 } dir_entry_t;
 // 目录游标（了解）
 typedef struct {
-    inode_t *inode;
-    int offset;
+    inode_t *inode; // 当前游标指向的文件
+    int offset; // 相对于文件的偏移
     void *buff;
 } dir_cursor_t;
 /*
@@ -249,9 +230,9 @@ typedef struct {
  *	如果返回 NULL，表示遍历结束
  *	让游标指向下一个目录项
 */
-void dir_cursor_init(dir_cursor_t *this, inode_t *inode);
-dir_entry_t *dir_cursor_next(dir_cursor_t *this);
-void dir_cursor_destroy(dir_cursor_t *this);
+void dir_cursor_init(dir_cursor_t *this, inode_t *inode); // 初始化游标
+dir_entry_t *dir_cursor_next(dir_cursor_t *this); // 返回当前指向的目录项，并将游标移动到下一目录项
+void dir_cursor_destroy(dir_cursor_t *this); // 销毁游标
 // 遍历目录 inode 的每一个目录项，打印 name 和 ino
 void dir_visit(inode_t *this)
 {
@@ -277,23 +258,6 @@ int error = namei_open(path, &p);
 ```
 
 - 实现对文件系统中保存的文件的读
-
-### 多线程开发
-
-```c
-// 初始化三个线程id
-pthread_t producer_tid;
-pthread_t computer_tid;
-pthread_t consumer_tid;
-// 绑定线程所要执行的任务，获取线程id
-pthread_create(&producer_tid, NULL, produce, NULL);
-pthread_create(&computer_tid, NULL, compute, NULL);
-pthread_create(&consumer_tid, NULL, consume, NULL);
-// 等待线程执行结束
-pthread_join(producer_tid, NULL);
-pthread_join(computer_tid, NULL);
-pthread_join(consumer_tid, NULL);
-```
 
 ## 经验（？）
 在考试环境里面做了去年的题目，浅浅总结一下心得。
